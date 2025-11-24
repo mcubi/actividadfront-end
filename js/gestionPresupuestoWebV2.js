@@ -41,7 +41,7 @@ class MiGasto extends HTMLElement {
 
     // 3.2 Crear la plantilla base del componente
     /* Uso de template string para construir el markup y estilos. No sé qué tan mala
-    praxis sea esto... :/ */
+    praxis sea esto... : */
     this.shadowRoot.innerHTML = `
       <style>
         /* Estilos encapsulados - no afectan al resto de la página */
@@ -137,13 +137,9 @@ class MiGasto extends HTMLElement {
     this._onCancelar = this._onCancelar.bind(this);
     this._onGuardar = this._onGuardar.bind(this);
   }
-
-  // -----------------------------
-  // Observed attributes si queremos exponer atributos HTML (no usado aquí)
-  // -----------------------------
-  static get observedAttributes() {
-    return []; // dejamos vacío porque trabajamos con la propiedad `gasto` (objeto)
-  }
+  // -----------------------
+  // # posible futuro vigilante de propiedades vía get estático. Actualmente borrado por desuso !
+  // -----------------------
 
   // -----------------------------
   // connectedCallback: llamado cuando el componente se inserta en el DOM
@@ -340,7 +336,7 @@ function crearFormularioCreacion() {
   campoEtiquetas.setAttribute("type", "text");
   campoEtiquetas.setAttribute(
     "placeholder",
-    "et1 et2 (separadas por espacios)"
+    "etiquetas separadas por espacios"
   );
 
   // Botón de envío
@@ -352,15 +348,15 @@ function crearFormularioCreacion() {
   form.append(campoValor, campoDesc, campoFecha, campoEtiquetas, botonEnvio);
 
   // Manejador submit
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
+  form.addEventListener("submit", function (eventEnviado) {
+    eventEnviado.preventDefault();
 
     // Lectura de valores
-    let valor = parseFloat(e.target.elements.valor.value);
-    let desc = e.target.elements.descripcion.value.trim();
-    let fecha = e.target.elements.fecha.value; // formato YYYY-MM-DD o ""
-    let etiquetas = e.target.elements.etiquetas.value.trim().length
-      ? e.target.elements.etiquetas.value.trim().split(/\s+/)
+    let valor = parseFloat(eventEnviado.target.elements.valor.value);
+    let desc = eventEnviado.target.elements.descripcion.value.trim();
+    let fecha = eventEnviado.target.elements.fecha.value; // formato YYYY-MM-DD o ""
+    let etiquetas = eventEnviado.target.elements.etiquetas.value.trim().length
+      ? eventEnviado.target.elements.etiquetas.value.trim().split(/\s+/)
       : [];
 
     // Validaciones básicas
@@ -380,7 +376,7 @@ function crearFormularioCreacion() {
     gestion.anyadirGasto(nuevo);
 
     // Limpiamos el formulario
-    e.target.reset();
+    eventEnviado.target.reset();
 
     // Repintamos la lista y el total
     pintarGastosWeb();
@@ -468,7 +464,7 @@ function actualizarTotal() {
   try {
     let balance = gestion.calcularBalance();
     texto += ` — Balance: ${balance} €`;
-  } catch (e) {
+  } catch (err) {
     // Si calcularBalance no existe o lanza error, lo ignoramos
   }
   divTotal.textContent = texto;
@@ -481,9 +477,9 @@ function actualizarTotal() {
   Escuchamos en `divLista` (o document) los eventos compuestos `gasto-borrar` y `gasto-editar`
   para aplicar los cambios en la capa de datos y repintar la interfaz.
 */
-divLista.addEventListener("gasto-borrar", function (e) {
-  // e.detail.id contiene el id del gasto a borrar
-  let id = e.detail?.id;
+divLista.addEventListener("gasto-borrar", function (eventBorrado) {
+  // eB.detail.id contiene el id del gasto a borrar
+  let id = eventBorrado.detail?.id;
   if (typeof id === "undefined") return;
 
   // Confirmamos (doble confirmación opcional)
@@ -496,9 +492,9 @@ divLista.addEventListener("gasto-borrar", function (e) {
   pintarGastosWeb();
 });
 
-divLista.addEventListener("gasto-editar", function (e) {
-  // e.detail.gasto contiene el objeto actualizado
-  let actualizado = e.detail?.gasto;
+divLista.addEventListener("gasto-editar", function (eventEditado) {
+  // eEd.detail.gasto contiene el objeto actualizado
+  let actualizado = eventEditado.detail?.gasto;
   if (!actualizado) return;
 
   // Actualizamos localmente el objeto en el array
@@ -525,4 +521,57 @@ divLista.addEventListener("gasto-editar", function (e) {
 crearFormularioCreacion();
 pintarGastosWeb();
 
-// FIN del módulo
+// ===============================
+// GUARDAR LISTADO EN localStorage
+// ===============================
+document.getElementById("btnGuardar").addEventListener("click", () => {
+  const lista = gestion.listarGastos(); // obtenemos el array de gastos actual
+  const cadena = JSON.stringify(lista); // lo convertimos a cadena
+
+  localStorage.setItem("misGastos", cadena);
+
+  alert("Gastos guardados correctamente en el almacenamiento local.");
+});
+
+// ===============================
+// CARGAR LISTADO DESDE localStorage
+// ===============================
+document.getElementById("btnCargar").addEventListener("click", () => {
+  const datos = localStorage.getItem("misGastos");
+
+  if (!datos) {
+    alert("No hay datos guardados.");
+    return;
+  }
+
+  const arrayPlano = JSON.parse(datos); // recuperamos la lista "plana"
+
+  // Reconstrucción de objetos CrearGasto conservando id y fecha
+  const reconstruidos = arrayPlano.map((g) => {
+    // Aseguramos que la fecha sea numérica (milisegundos)
+    const fechaCorrecta =
+      typeof g.fecha === "number" ? g.fecha : Date.parse(g.fecha);
+
+    // Creamos el objeto gasto
+    const nuevoGasto = new gestion.CrearGasto(
+      g.descripcion,
+      g.valor,
+      fechaCorrecta,
+      ...g.etiquetas
+    );
+
+    // Conservamos el id original
+    nuevoGasto.id = g.id;
+
+    return nuevoGasto;
+  });
+
+  // Reemplaza por completo el listado actual
+  gestion.setListadoGastos(reconstruidos);
+
+  // Repintar lista en pantalla usando tus Web Components <mi-gasto>
+  pintarGastosWeb();
+
+  // Opcional: mostrar mensaje
+  alert("Listado recuperado del almacenamiento local.");
+});

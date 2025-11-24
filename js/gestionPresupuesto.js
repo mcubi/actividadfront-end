@@ -102,6 +102,10 @@ function listarGastos() {
   return gastos;
 }
 
+function setListadoGastos(nuevoListado) {
+  gastos = nuevoListado;
+}
+
 function anyadirGasto(gasto) {
   gasto.id = contadorId++;
   gastos.push(gasto);
@@ -178,6 +182,7 @@ export {
   mostrarPresupuesto,
   CrearGasto,
   listarGastos,
+  setListadoGastos,
   anyadirGasto,
   borrarGasto,
   calcularTotalGastos,
