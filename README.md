@@ -1,11 +1,3 @@
-# MODIFICACIÓN DEL README!
-
-## Debo informar que las políticas en mi dispositivo no me dejan cargar el contenido del script; voy un poco a ciegas y necesito arreglarlo
-
-## Espero que la funcionalidad esté correcta :/
-
----
-
 # Desarrollo Web en Entorno Cliente - Prácticas
 
 Repositorio de prácticas para el módulo de Desarrollo Web en Entorno Cliente.
